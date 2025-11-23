@@ -20,6 +20,7 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
 
 
 def _size_to_float(val, default=10.0):
@@ -167,6 +168,12 @@ def plot_and_save(df: pd.DataFrame, out_path: str, title: Optional[str] = None, 
 	nrows, ncols = values.shape
 
 	fig, ax = plt.subplots(figsize=(max(4, ncols), max(4, nrows)))
+	# ensure figure and axes background are white
+	try:
+		fig.patch.set_facecolor('white')
+		ax.set_facecolor('white')
+	except Exception:
+		pass
 	im = ax.imshow(values, cmap=cmap, aspect="equal")
 	# make colorbar slimmer and slightly shorter so it doesn't dominate the figure
 	cbar = fig.colorbar(im, ax=ax, fraction=0.03, pad=0.03, shrink=0.85)
@@ -236,12 +243,19 @@ def plot_and_save(df: pd.DataFrame, out_path: str, title: Optional[str] = None, 
 					_is_zero = math.isclose(val, 0.0, abs_tol=1e-9)
 				if _is_zero:
 					text = ''
+					# draw a white rectangle over the cell to hide colormap for zero cells
+					try:
+						rect = Rectangle((j - 0.5, i - 0.5), 1, 1, facecolor='white', edgecolor='none', zorder=2)
+						ax.add_patch(rect)
+					except Exception:
+						pass
 				color = 'white' if (not math.isnan(vmax) and val > vmax / 2.0) else 'black'
-				ax.text(j, i, text, ha='center', va='center', color=color, fontsize=int(base_annot * mult))
+				ax.text(j, i, text, ha='center', va='center', color=color, fontsize=int(base_annot * mult), zorder=3)
 
 	fig.tight_layout()
 	os.makedirs(os.path.dirname(out_path) or '.', exist_ok=True)
-	fig.savefig(out_path, dpi=dpi, bbox_inches='tight')
+	# save with white background
+	fig.savefig(out_path, dpi=dpi, bbox_inches='tight', facecolor=fig.get_facecolor())
 	plt.close(fig)
 
 
